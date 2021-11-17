@@ -1,0 +1,1 @@
+run = "clang++-7 -pthread -g -Wall -Werror -o main ./*.cpp && ./main"
