@@ -7,8 +7,11 @@
 #include "random.hpp"
 
 
-constexpr std::size_t HEIGHT = 10;
-constexpr std::size_t WIDTH = 10;
+constexpr std::size_t HEIGHT = 5;
+constexpr std::size_t WIDTH = 5;
+
+
+using namespace std::chrono_literals;
 
 
 std::chrono::milliseconds operator "" _fps(unsigned long long int n)
@@ -32,6 +35,17 @@ int main()
 
     Frame<HEIGHT, WIDTH> frame;
     frame.fill('0');
-    display_frame(frame, 1_fps);
+
+    for (size_t i = 0; i < HEIGHT; i++)
+    {
+        frame.downshift(make_rand_line<WIDTH>({ '|', '-' }));
+    }
+
+    size_t i = 0;
+    for (char c = '0' ;; c++, i++)
+    {
+        display_frame(frame, 5_fps);
+        frame.rotate();
+    }
 }
 

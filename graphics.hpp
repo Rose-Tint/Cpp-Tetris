@@ -14,27 +14,31 @@ namespace tetris
     class Frame;
 
 
-    template < std::size_t W >
-    std::string make_deletion_line()
-    {
-        using str = std::string;
-        static const str line =
-            str(W, '\b')
-          + str(W, ' ')
-          + str(W, '\b')
-          + "\x1B[A\r";
-        return line;
-    }
-    
-
     template < std::size_t H, std::size_t W >
     void delete_frame()
     {
-        static std::string del_line = make_deletion_line<W>();
-        std::string stream;
-        for (std::size_t i = 0; i < H; i++)
-            stream += del_line;
-        std::cout << stream << std::flush;
+        static constexpr const char* line_up = "\x1B[A\r";
+        // reserve enough room for the deletion string
+        // 3 x H x W because there are three strings with the same length as the line
+        //     [backspaces to clear the line, spaces to override, backspaces to clear the line again],
+        // plus room for "\x1B[A\r" at the end of every line
+        static constexpr std::size_t res_sz = (3 * H * W) + (sizeof(line_up) * H);
+        std::string init_backsps(W, '\b');
+        std::string spaces(W, ' ');
+        std::string end_bsp_line = init_backsps + line_up;
+        std::string del_str;
+
+        del_str.reserve(res_sz);
+
+        for (std::size_t ln = 0; ln < H; ln++)
+            del_str.append(init_backsps);
+        for (std::size_t ln = 0; ln < H; ln++)
+            del_str.append(spaces);
+        for (std::size_t ln = 0; ln < H; ln++)
+            del_str.append(end_bsp_line);
+
+        // insert additional `line_up` to account for trailing '\n'
+        std::cout << del_str << line_up << line_up << std::flush;
     }
 
 

@@ -25,9 +25,9 @@ namespace tetris
 
         char& operator [] (coord_type coords);
         const char& operator [] (coord_type coords) const;
-        std::string operator [] (std::size_t y) const;
         // TODO: subscript operator that returns a proxy to a line
         void fill(char c);
+        void fill_line(std::size_t ln, char c);
         void downshift(std::string new_top_line);
         void upshift(std::string new_btm_line);
         void rotate();
@@ -54,7 +54,7 @@ namespace tetris
         line_type& orig_topl = lines[0];
         topl.resize(W, Fill_Ch);
 
-        for (std::size_t i = 1; i < H; i++)
+        for (std::size_t i = H; i > 0; i--)
             lines[i] = lines[i - 1];
 
         for (std::size_t i = 0; i < W; i++)
@@ -65,8 +65,8 @@ namespace tetris
     template < std::size_t H, std::size_t W, char Fill_Ch >
     void tetris::Frame<H, W, Fill_Ch>::rotate()
     {
-        lines[0] = lines[H];
-        for (std::size_t i = 1; i < H; i++)
+        lines[0] = lines[H - 1];
+        for (std::size_t i = H; i > 0; i--)
             lines[i] = lines[i - 1];
     }
 
