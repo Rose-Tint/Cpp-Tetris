@@ -1,3 +1,20 @@
 {
-  "files": {}
+  "files": {
+    "Frame.hpp": [
+      {
+        "id": "ac9f1238-13eb-478d-99fa-7accc7c8f4b8",
+        "line": 93,
+        "version": 8718,
+        "index": 2525
+      }
+    ],
+    "animations.hpp": [
+      {
+        "id": "fe4b3bf6-e77f-4849-917a-3f0dd4760165",
+        "line": 91,
+        "version": 6760,
+        "index": 2835
+      }
+    ]
+  }
 }

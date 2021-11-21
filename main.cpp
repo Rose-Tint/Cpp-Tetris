@@ -1,51 +1,52 @@
 #include <iostream>
 #include <cmath>
 #include <thread>
+#include <algorithm>
+#include <unordered_map>
 
 #include "Frame.hpp"
 #include "graphics.hpp"
-#include "random.hpp"
+#include "display.hpp"
+#include "argparse.hpp"
+#include "animations.hpp"
 
 
-constexpr std::size_t HEIGHT = 5;
-constexpr std::size_t WIDTH = 5;
+constexpr float ResScale = 2;
+constexpr std::size_t Height = 9 * ResScale;
+// double the width to account for the extra spacing between lines in the terminal
+constexpr std::size_t Width = (16 * 2) * ResScale;
 
 
-using namespace std::chrono_literals;
+using frame_t = Frame<Height, Width>;
 
 
-std::chrono::milliseconds operator "" _fps(unsigned long long int n)
+template < std::size_t H, std::size_t W >
+void main_loop(Frame<H, W>& frame, const ArgInfo&)
 {
-    using rep = typename std::chrono::milliseconds::rep;
-    return std::chrono::milliseconds(rep((n) ? std::ceil(1000.0 / n) : n));
+    std::thread torus_thr(rotating_torus<Height, Width>, std::ref(frame));
+    torus_thr.join();
 }
 
 
-int main()
+int main(int argc, const char** argv)
 {
-    using namespace tetris;
-    using std::string;
-    using std::size_t;
+    using std::ref;
+
+    const ArgInfo info = parse(argc, argv);
 
     // make IO faster
     std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr); // unties cout from cin
-    std::cout.tie(nullptr); // unties cin from cout
+    std::cin.tie(nullptr); // unties cin from cout
+    std::cout.tie(nullptr); // unties cout from cin
     std::nounitbuf(std::cout); // disables automatic flushing
 
-    Frame<HEIGHT, WIDTH> frame;
-    frame.fill('0');
+    frame_t frame(' ');
 
-    for (size_t i = 0; i < HEIGHT; i++)
-    {
-        frame.downshift(make_rand_line<WIDTH>({ '|', '-' }));
-    }
+    // seperate graphics from logic
+    std::thread display_thr(run_display<Height, Width>, ref(frame), ref(info));
+    std::thread main_loop_thr(main_loop<Height, Width>, ref(frame), ref(info));
 
-    size_t i = 0;
-    for (char c = '0' ;; c++, i++)
-    {
-        display_frame(frame, 5_fps);
-        frame.rotate();
-    }
+    display_thr.join();
+    main_loop_thr.join();
 }
 
