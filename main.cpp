@@ -5,26 +5,25 @@
 #include <unordered_map>
 
 #include "Frame.hpp"
-#include "graphics.hpp"
 #include "display.hpp"
 #include "argparse.hpp"
-#include "animations.hpp"
+#include "Tetris/Tetris.hpp"
 
 
 constexpr float ResScale = 2;
-constexpr std::size_t Height = 9 * ResScale;
+constexpr std::size_t Height = 20; //9 * ResScale;
 // double the width to account for the extra spacing between lines in the terminal
-constexpr std::size_t Width = (16 * 2) * ResScale;
+constexpr std::size_t Width = 10; //(16 * 2) * ResScale;
 
 
 using frame_t = Frame<Height, Width>;
 
 
 template < std::size_t H, std::size_t W >
-void main_loop(Frame<H, W>& frame, const ArgInfo&)
+void main_loop(Frame<H, W>& frame)//, const ArgInfo&)
 {
-    std::thread torus_thr(rotating_torus<Height, Width>, std::ref(frame));
-    torus_thr.join();
+    Tetris tetris;
+    tetris(frame);
 }
 
 
@@ -44,7 +43,7 @@ int main(int argc, const char** argv)
 
     // seperate graphics from logic
     std::thread display_thr(run_display<Height, Width>, ref(frame), ref(info));
-    std::thread main_loop_thr(main_loop<Height, Width>, ref(frame), ref(info));
+    std::thread main_loop_thr(main_loop<Height, Width>, ref(frame));//, ref(info));
 
     display_thr.join();
     main_loop_thr.join();

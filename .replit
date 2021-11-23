@@ -1,2 +1,1 @@
-run = "clang++-7 -std=c++17 -lpthread -O3 -finline-functions -fvectorize -pedantic-errors -Wall -Wextra -Werror -o main ./*.cpp ./math/*.cpp && echo \"\t[Compilation Successful]\" && ./main -f 60"
- 
+run = "clear; cmake -Bbuild -H. && cd build && make && ./CppTetris -f 165; cd ../"

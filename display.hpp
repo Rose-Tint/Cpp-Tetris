@@ -58,7 +58,6 @@ void display_frame(const Frame<H, W>& frame, const ArgInfo& info)
         std::this_thread::sleep_for(info.frame_limit);
         del_th.join();
     }
-    else; // if limit is negative, keep on screen
 }
 
 
