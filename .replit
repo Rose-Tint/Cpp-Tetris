@@ -1,1 +1,1 @@
-run = "clear; cmake -Bbuild -H. && cd build && make && ./CppTetris -f 165; cd ../"
+run = "clear; cmake -Bbuild -H.; if [ $? -eq 0 ]; then make -C build; if [ $? -eq 0 ]; then clear; echo \"[[ Success ]]\"; cd build; exec ./CppTetris -f 120; cd ..; else echo \"{{ Failure }}\"; fi fi;"
