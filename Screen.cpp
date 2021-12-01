@@ -3,7 +3,7 @@
 
 
 Screen::Screen(size_type h, size_type w, Ms fps, char bg)
-    : fps_lim(fps), bg(bg), _height(h), _width(w),
+    : fps_lim(fps), bg(bg), H(h), W(w),
       array(new char[h * w])
 {
     display_thread = std::thread(&Screen::display, this);
@@ -41,32 +41,26 @@ void Screen::fill(char ch)
 
 void Screen::fill(size_type x1, size_type y1, size_type x2, size_type y2, char ch)
 {
-    if (x1 > x2)     std::swap(x1, x2);
-    if (y1 > y2)     std::swap(y1, y2);
-    if (x2 > _width)  x2 = _width;
-    if (y2 > _height) y2 = _height;
+    if (x1 > x2) std::swap(x1, x2);
+    if (y1 > y2) std::swap(y1, y2);
 
-    for (size_type y_pos = y1; y_pos < y2; y_pos++)
-        std::fill(array + index(y_pos, x1), array + index(y_pos, x2), ch);
+    for (size_type y = y1; y < y2; y++)
+        for (size_type x = x1; x < x2; x++)
+            set(x, y, ch);
 }
 
 
 void Screen::display()
 {
-    const std::string bsp_ln = std::string((_width * 2) + 1, '\b') + "\x1B[A";
-    const std::string del_str = ([&bsp_ln](size_type w) -> std::string
-    {
-        std::string del_str;
-        for (int i = 0; i < w; i++)
-            del_str += bsp_ln;
-        return del_str;
-    })(_width);
+    const std::string bsp_ln = std::string((W * 2), '\b') + "\x1B[A";
 
-    const auto output = [](Screen& scn)
+    const size_type area = H * W;
+
+    const auto output = [&area](Screen& scn)
     {
-        for (typename Screen::size_type i = 0; i < scn._height * scn._width; i++)
+        for (typename Screen::size_type i = 0; i < area; i++)
         {
-            if (i && (i % scn._width == 0))
+            if (i && (i % scn.W == 0))
                 std::cout << '\n';
             std::cout << scn.array[i] << ' ';
         }
@@ -79,7 +73,7 @@ void Screen::display()
         std::this_thread::sleep_for(fps_lim);
         out_thr.join();
 
-        for (typename Screen::size_type j = 0; j < _height; j++)
+        for (typename Screen::size_type j = 0; j < H; j++)
             std::cout << bsp_ln;
         std::cout << std::flush;
     }

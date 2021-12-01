@@ -1,8 +1,8 @@
 #include "Tetris/Shape.hpp"
 
 
-Shape::Shape(ShapeID id, size_type x)
-    : x(x), y(0), id(id)
+Shape::Shape(ShapeID id, size_type x_pos, size_type y_pos)
+    : x_pos(x_pos), y_pos(y_pos), id(id)
 {
     reset_matrix();
 }
@@ -14,8 +14,9 @@ Shape& Shape::operator = (Shape&& other)
         return *this;
     const ShapeID& id_ref = id;
     const_cast<ShapeID&>(id_ref) = other.id;
-    y = 0.0f;
-    reset_matrix();
+    matrix = other.matrix;
+    y_pos = other.y_pos;
+    x_pos = other.x_pos;
     return *this;
 }
 
@@ -53,21 +54,17 @@ Shape::size_type Shape::left_most() const
     for (std::bitset<4> row : matrix)
     {
         if (row.any())
-        {
             for (size_type i = 0; i < 4; i++)
-            {
                 if (row.test(i))
                 {
                     if (i > lmost)
                         lmost = i;
                     break;
                 }
-            }
-        }
         if (lmost == 0)
             break;
     }
-    return lmost;
+    return x_pos + lmost;
 }
 
 
@@ -77,21 +74,17 @@ Shape::size_type Shape::right_most() const
     for (std::bitset<4> row : matrix)
     {
         if (row.any())
-        {
             for (size_type i = 0; i < 4; i++)
-            {
                 if (row.test(i))
                 {
                     if (i > rmost)
                         rmost = i;
                     break;
                 }
-            }
-        }
         if (rmost == 4)
             break;
     }
-    return rmost;
+    return x_pos + rmost;
 }
 
 
@@ -100,35 +93,32 @@ std::array<std::pair<Shape::size_type, Shape::size_type>, 4>
 {
     std::array<std::pair<size_type, size_type>, 4> array { };
 
-    size_type to_set = 0;
-    for (size_type i = 0; i < 4; i++)
-        for (size_type j = 0; j < 4; j++)
-            if (matrix.at(i).test(j))
-                array[to_set++] = std::make_pair(j, i);
+    size_type next = 0;
+    for (size_type y = 0; y < 4; y++)
+        for (size_type x = 0; x < 4; x++)
+            if (matrix.at(y).test(x))
+                array[next++] = std::make_pair(x_pos + x, y_pos + y);
     return array;
 }
 
 
-void Shape::draw(Screen& scn, bool reset)
+void Shape::draw(Screen& scn, bool reset) const
 {
     static std::array<std::pair<size_type, size_type>, 4>
         prev_crds = {{{0,0},{0,0},{0,0},{0,0}}};
-    static size_type prev_x = 0, prev_y = 0;
 
     if (reset)
-    {
         prev_crds = {{{0,0},{0,0},{0,0},{0,0}}};
-        prev_x = 0;
-        prev_y = 0;
+    else
+    {
+        for (auto [x, y] : prev_crds)
+            scn.set(x, y, scn.bg_char());
     }
-    else for (std::pair<size_type, size_type> crd : prev_crds)
-        scn.set(prev_x + crd.first, prev_y + crd.second, scn.bg_char());
     const auto curr_crds = coords();
-    for (std::pair<size_type, size_type> crd : curr_crds)
-        scn.set(x + crd.first, y + crd.second, id_as_char());
+    for (auto [x, y] : curr_crds)
+        scn.set(x, y, id_as_char());
+
     prev_crds = curr_crds;
-    prev_x = x;
-    prev_y = y;
 }
 
 

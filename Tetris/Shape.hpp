@@ -32,21 +32,20 @@ class Shape
   public:
     using size_type = std::int_fast8_t;
 
-    Shape(ShapeID id, size_type x);
+    Shape(ShapeID id, size_type x_pos, size_type y_pos);
 
     Shape& operator = (Shape&& other);
 
-    void draw(Screen& scn, bool reset = false);
+    void draw(Screen& scn, bool reset = false) const;
     void rotate();
     size_type left_most() const;
     size_type right_most() const;
     std::array<std::pair<size_type, size_type>, 4>
         coords() const;
-    void descend(size_type spd = 1) { y += spd; }
-    bool check_collision(size_type _x, size_type _y);
+    void descend(size_type spd = 1) { y_pos += spd; }
 
   private:
-    size_type x, y;
+    size_type x_pos, y_pos;
     std::array<std::bitset<4>, 4> matrix;
     const ShapeID id;
 

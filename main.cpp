@@ -8,23 +8,20 @@
 #include "Tetris/Tetris.hpp"
 
 
-constexpr int Height = 20;
+constexpr int Height = 24;
 constexpr int Width = 10;
 
 
 void run(Screen& screen)
 {
     using namespace std::chrono_literals;
-    Tetris tetris(screen, 500ms, 5ms);
-    // std::thread(TetrisInput, std::ref(tetris));
+    Tetris tetris(screen);
     tetris();
 }
 
 
 int main(int argc, const char** argv)
 {
-    using std::ref;
-
     const ArgInfo info = parse(argc, argv);
 
     // make IO faster
@@ -33,11 +30,9 @@ int main(int argc, const char** argv)
     std::cout.tie(nullptr); // unties cout from cin
     std::nounitbuf(std::cout); // disables automatic flushing
 
-    Screen screen(Height, Width, info.frame_limit, '.');
+    Screen screen(Height, Width, info.frame_limit, ' ');
 
-    std::thread main_thr;
-
-    main_thr = std::thread(run, ref(screen));
+    std::thread main_thr(run, std::ref(screen));
     main_thr.join();
 }
 

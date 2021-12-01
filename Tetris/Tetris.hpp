@@ -13,24 +13,36 @@
 class Screen;
 
 
+void TetrisFunc(Screen& screen);
+
+
 class Tetris
 {
   public:
-    using size_type = std::uint_fast16_t;
+    static constexpr std::uint_fast8_t H = 24;
+    static constexpr std::uint_fast8_t W = 10;
+
+    using board_type = std::array<std::bitset<W>, H>;
+    using uint = std::uint_fast16_t;
     using millis = std::chrono::milliseconds;
 
-    Tetris(Screen& scn, millis spd, millis acc);
+    Tetris(Screen& screen);
     void operator () ();
 
   private:
-    static Shape get_new_shape();
+    bool landed = true;
+    bool reset_shape = true;
+    uint level = 1;
+    uint landed_count = 0;
+    uint thresh = 15;
+    static constexpr uint accel = 3;
+    board_type board { };
+    Shape shape = get_new_shape();
+    Screen& scr;
 
-    bool landed = false;
-    const millis acc;
-    millis speed;
-    std::array<std::bitset<10>, 20> board;
-    Shape shape;
-    Screen& screen;
+    Shape get_new_shape();
+    void clean_rows();
+    void on_land();
 };
 
 #endif
