@@ -1,9 +1,8 @@
 #pragma once
-#ifndef ARGPARSE_HPP
-#define ARGPARSE_HPP
 
 #include <map>
 #include <chrono>
+#include <cmath>
 #include <string>
 
 
@@ -13,7 +12,6 @@ class ArgInfo
 
   public:
     milli frame_limit = milli(0); // minimum number of ms between frames
-    std::string file_name = "";
 };
 
 
@@ -49,20 +47,7 @@ ArgInfo parse(int argc, const char** argv)
                 catch (const std::invalid_argument&) { /* do nothing */ }
             }
         }
-
-        if (curr == "-F" || curr == "--file")
-        {
-            // overrides file_name only if it is empty
-            // and there is a next argument which is not an option
-            if (info.file_name == "" && i != argc - 1 && argv[i + 1][0] != '-')
-            {
-                arg = argv[i + 1];
-                info.file_name = arg;
-            }
-        }
     }
 
     return info;
 }
-
-#endif

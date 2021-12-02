@@ -1,36 +1,22 @@
 #include <iostream>
-#include <cmath>
 #include <thread>
-#include <algorithm>
-#include <unordered_map>
+#include <chrono>
+#include <cstdint>
+#include <cstdio>
 
-#include "Frame.hpp"
-#include "graphics.hpp"
-#include "display.hpp"
+#include "Screen.hpp"
 #include "argparse.hpp"
-#include "animations.hpp"
+#include "Tetris/Tetris.hpp"
 
 
-constexpr float ResScale = 2;
-constexpr std::size_t Height = 9 * ResScale;
-// double the width to account for the extra spacing between lines in the terminal
-constexpr std::size_t Width = (16 * 2) * ResScale;
-
-
-using frame_t = Frame<Height, Width>;
-
-
-template < std::size_t H, std::size_t W >
-void main_loop(Frame<H, W>& frame, const ArgInfo&)
-{
-    std::thread torus_thr(rotating_torus<Height, Width>, std::ref(frame));
-    torus_thr.join();
-}
+constexpr std::uint_fast8_t Height = 24;
+constexpr std::uint_fast8_t Width = 10;
 
 
 int main(int argc, const char** argv)
 {
-    using std::ref;
+    [[maybe_unused]]
+    int _ = std::system("/bin/stty -echo");
 
     const ArgInfo info = parse(argc, argv);
 
@@ -40,13 +26,8 @@ int main(int argc, const char** argv)
     std::cout.tie(nullptr); // unties cout from cin
     std::nounitbuf(std::cout); // disables automatic flushing
 
-    frame_t frame(' ');
+    Screen scr(Height, Width, info.frame_limit, ' ');
 
-    // seperate graphics from logic
-    std::thread display_thr(run_display<Height, Width>, ref(frame), ref(info));
-    std::thread main_loop_thr(main_loop<Height, Width>, ref(frame), ref(info));
-
-    display_thr.join();
-    main_loop_thr.join();
+    Tetris tetris(scr);
 }
 
