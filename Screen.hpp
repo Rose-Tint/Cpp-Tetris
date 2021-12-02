@@ -1,9 +1,8 @@
-#ifndef SCREEN_HPP
-#define SCREEN_HPP
+#pragma once
 
-#include <fstream>
-#include <array>
 #include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <chrono>
 
 
@@ -12,6 +11,9 @@ class Screen
     using Ms = std::chrono::milliseconds;
 
   public:
+    using scoped_lock_t = std::scoped_lock<std::mutex>;
+    using lock_guard_t = std::lock_guard<std::mutex>;
+    using unique_lock_t = std::unique_lock<std::mutex>;
     using size_type = std::size_t;
 
     Screen(size_type H, size_type W, Ms fps, char bg = ' ');
@@ -36,26 +38,34 @@ class Screen
     size_type width() const { return W; }
     char bg_char() const { return bg; }
     char bg_char(char ch) { return (bg = ch); }
+    std::mutex& get_mutex() const { return io_mtx; }
+    const bool& io_ready() const { return outputting; }
+    std::condition_variable& io_cvar() const { return io_cv; }
+    void lock() const { io_mtx.lock(); }
+    void unlock() const { io_mtx.unlock(); }
 
-    char* begin() { return array; }
-    char* end() { return array + (H * W); }
-    const char* begin() const { return array; }
-    const char* end() const { return array + (H * W); }
-    const char* cbegin() const { return array; }
-    const char* cend() const { return array + (H * W); }
+    char* begin() { return buffer; }
+    char* end() { return buffer + (H * W); }
+    const char* begin() const { return buffer; }
+    const char* end() const { return buffer + (H * W); }
+    const char* cbegin() const { return buffer; }
+    const char* cend() const { return buffer + (H * W); }
+
 
   private:
-    mutable bool do_display = true;
-    void display();
+    mutable bool outputting = true, do_display = true;
+    mutable std::condition_variable io_cv;
+    mutable std::mutex io_mtx;
     const Ms fps_lim;
     char bg;
-    const size_type H, W;
+    const size_type H, W, area;
+    const std::string bsp_ln;
     std::thread display_thread;
-    std::ofstream file;
-    char* array;
+    char* buffer;
 
+    void display() const;
+    void print() const;
+    void erase() const;
     size_type index(size_type x, size_type y) const
         { return ((y + 1) * W) - (x - 1); }
 };
-
-#endif

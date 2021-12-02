@@ -1,27 +1,23 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
-#include <ncurses.h>
+#include <cstdint>
+#include <cstdio>
 
 #include "Screen.hpp"
 #include "argparse.hpp"
 #include "Tetris/Tetris.hpp"
 
 
-constexpr int Height = 24;
-constexpr int Width = 10;
-
-
-void run(Screen& screen)
-{
-    using namespace std::chrono_literals;
-    Tetris tetris(screen);
-    tetris();
-}
+constexpr std::uint_fast8_t Height = 24;
+constexpr std::uint_fast8_t Width = 10;
 
 
 int main(int argc, const char** argv)
 {
+    [[maybe_unused]]
+    int _ = std::system("/bin/stty -echo");
+
     const ArgInfo info = parse(argc, argv);
 
     // make IO faster
@@ -30,9 +26,8 @@ int main(int argc, const char** argv)
     std::cout.tie(nullptr); // unties cout from cin
     std::nounitbuf(std::cout); // disables automatic flushing
 
-    Screen screen(Height, Width, info.frame_limit, ' ');
+    Screen scr(Height, Width, info.frame_limit, ' ');
 
-    std::thread main_thr(run, std::ref(screen));
-    main_thr.join();
+    Tetris tetris(scr);
 }
 

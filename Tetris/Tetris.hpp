@@ -1,19 +1,26 @@
 #pragma once
-#ifndef TETRIS_TETRIS_HPP
-#define TETRIS_TETRIS_HPP
 
 #include <bitset>
 #include <array>
 #include <cstdint>
-#include <chrono>
+#include <thread>
+#include <atomic>
 
-#include "Tetris/Shape.hpp"
+#include "../Tetris/Shape.hpp"
 
 
 class Screen;
 
 
-void TetrisFunc(Screen& screen);
+enum struct Key : int
+{
+          Up,
+    Left,Down,Right,
+    Q,W,E,R,
+    A,S,D,F,
+    Space,
+    Other
+};
 
 
 class Tetris
@@ -24,25 +31,35 @@ class Tetris
 
     using board_type = std::array<std::bitset<W>, H>;
     using uint = std::uint_fast16_t;
-    using millis = std::chrono::milliseconds;
 
     Tetris(Screen& screen);
-    void operator () ();
+
+    ~Tetris();
+
+    void soft_drop();
+    void hard_drop();
+    void go_right();
+    void go_left();
+    void rotate_cw();
+    void rotate_cc();
+    void hold();
 
   private:
-    bool landed = true;
-    bool reset_shape = true;
-    uint level = 1;
-    uint landed_count = 0;
-    uint thresh = 15;
-    static constexpr uint accel = 3;
+    bool landed = true, reset_shape = true;
+    std::atomic<bool> run = true;
+    std::atomic<uint> score = 0, level = 1;
+    std::atomic<uint> speed = 1, thresh = 15, acc = 3;
+    std::atomic<uint> landed_count = 0;
     board_type board { };
-    Shape shape = get_new_shape();
+    Shape shape = rand_shape(), queued = rand_shape();
     Screen& scr;
+    std::thread launch_thr, input_thr;
 
-    Shape get_new_shape();
+    int getch() const;
+    void get_input();
+    void input_loop() { while (run) get_input(); }
+    void launch();
+    Shape rand_shape();
     void clean_rows();
     void on_land();
 };
-
-#endif

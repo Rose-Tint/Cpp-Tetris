@@ -1,10 +1,31 @@
-#include "Tetris/Shape.hpp"
+#include "../Tetris/Shape.hpp"
 
 
 Shape::Shape(ShapeID id, size_type x_pos, size_type y_pos)
     : x_pos(x_pos), y_pos(y_pos), id(id)
 {
     reset_matrix();
+}
+
+
+Shape::Shape(const Shape& other)
+    : x_pos(other.x_pos), y_pos(other.y_pos),
+      matrix(other.matrix), id(other.id)
+{
+    ;
+}
+
+
+Shape& Shape::operator = (const Shape& other)
+{
+    if (this == &other)
+        return *this;
+    const ShapeID& id_ref = id;
+    const_cast<ShapeID&>(id_ref) = other.id;
+    matrix = other.matrix;
+    y_pos = other.y_pos;
+    x_pos = other.x_pos;
+    return *this;
 }
 
 
@@ -21,7 +42,7 @@ Shape& Shape::operator = (Shape&& other)
 }
 
 
-void Shape::rotate()
+void Shape::rotate_cw()
 {
     static constexpr size_type layer_c = 2;
     static constexpr size_type height = 3;
@@ -48,27 +69,34 @@ void Shape::rotate()
 }
 
 
-Shape::size_type Shape::left_most() const
+void Shape::rotate_cc()
 {
-    size_type lmost = 4;
-    for (std::bitset<4> row : matrix)
+    static constexpr size_type layer_c = 2;
+    static constexpr size_type height = 4;
+
+    for (size_type layer = 0; layer < layer_c; layer++)
     {
-        if (row.any())
-            for (size_type i = 0; i < 4; i++)
-                if (row.test(i))
-                {
-                    if (i > lmost)
-                        lmost = i;
-                    break;
-                }
-        if (lmost == 0)
-            break;
+        size_type first = layer;
+        size_type last = height - first;
+
+        for (size_type elem = first; elem < last; elem++)
+        {
+            size_type off = elem - first;
+
+            bool topl = matrix[first][elem];
+            bool topr = matrix[elem][last];
+            bool btmr = matrix[last][last - off];
+            bool btml = matrix[last - off][first];
+            matrix[first][elem] = topr;
+            matrix[elem][last] = btml;
+            matrix[last][last - off] = btmr;
+            matrix[last - off][first] = topl;
+        }
     }
-    return x_pos + lmost;
 }
 
 
-Shape::size_type Shape::right_most() const
+Shape::size_type Shape::right() const
 {
     size_type rmost = 4;
     for (std::bitset<4> row : matrix)
@@ -186,6 +214,31 @@ void Shape::reset_matrix()
             "\n\tchar(id): '"
             + std::string(1, id_as_char()) + '\''
         );
+    }
+}
+
+
+Shape::size_type Shape::height() const
+{
+    size_type h = 0;
+    h += matrix.at(0).any();
+    h += matrix.at(1).any();
+    h += matrix.at(2).any();
+    h += matrix.at(3).any();
+    return h;
+}
+
+
+Shape::size_type Shape::width() const
+{
+    size_type w = 0;
+    bool col_any = false;
+    for (size_type x = 0; x < 4; x++)
+    {
+        col_any = false;
+        for (size_type y = 0; y < 4 && !col_any; y++)
+            col_any |= matrix.at(y).test(x);
+        w += col_any;
     }
 }
 

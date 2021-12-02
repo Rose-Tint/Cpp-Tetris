@@ -1,6 +1,4 @@
 #pragma once
-#ifndef TETRIS_SHAPE_HPP
-#define TETRIS_SHAPE_HPP
 
 #include <bitset>
 #include <array>
@@ -30,19 +28,26 @@ enum struct ShapeID : char { T, L, J, I, O, S, Z, };
 class Shape
 {
   public:
-    using size_type = std::int_fast8_t;
+    using size_type = std::uint_fast16_t;
 
     Shape(ShapeID id, size_type x_pos, size_type y_pos);
+    Shape(const Shape& other);
 
+    Shape& operator = (const Shape& other);
     Shape& operator = (Shape&& other);
 
     void draw(Screen& scn, bool reset = false) const;
-    void rotate();
-    size_type left_most() const;
-    size_type right_most() const;
+    void rotate_cw();
+    void rotate_cc();
+    size_type get_x() const { return x_pos; }
+    void go_right() { x_pos++; }
+    void go_left() { x_pos--; }
+    size_type height() const;
+    size_type width() const;
+    size_type set_y(size_type y) { return (y_pos = y); }
     std::array<std::pair<size_type, size_type>, 4>
         coords() const;
-    void descend(size_type spd = 1) { y_pos += spd; }
+    void descend(size_type dist = 1) { y_pos += dist; }
 
   private:
     size_type x_pos, y_pos;
@@ -52,6 +57,3 @@ class Shape
     char id_as_char() const;
     void reset_matrix();
 };
-
-
-#endif
