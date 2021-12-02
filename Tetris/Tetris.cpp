@@ -16,15 +16,15 @@ using millis = std::chrono::milliseconds;
 Tetris::Tetris(Screen& scr)
     : shape(rand_shape()), scr(scr)
 {
+    landed = reset_shape = can_hold = true;
     board = { };
-    scr.bg_char('.');
-    scr.clear();
+    scr.BgChar('.');
+    scr.Clear();
     launch_thr = std::thread(&Tetris::launch, this);
     input_thr = std::thread(&Tetris::input_loop, this);
 }
 
 
-// TODO: user input.
 // BUG: game does not stop when top is reached.
 // BUG: after reaching the top, pieces overlap,
 //     inching downwards, and after a while, when
@@ -35,18 +35,18 @@ void Tetris::launch()
     {
         if (!landed)
         {
-            shape.descend(level);
-            auto coords = shape.coords();
-            for (auto [x, y] : coords)
-                if (y >= H - 1 || board.at(y + 1).test(x))
+            shape.Descend(level);
+            auto Coords = shape.Coords();
+            for (auto [x, y] : Coords)
+                if (y >= HEIGHT - 1 || board.at(y + 1).test(x))
                     landed = true;
             if (landed)
-                for (auto [x, y] : coords)
+                for (auto [x, y] : Coords)
                     board.at(y).set(x);
         }
         else on_land();
 
-        shape.draw(scr, reset_shape);
+        shape.Draw(scr, reset_shape);
         if (reset_shape)
             reset_shape = false;
 
@@ -56,20 +56,16 @@ void Tetris::launch()
 }
 
 
-void Tetris::hard_drop()
+void Tetris::HardDrop()
 {
     // get lowest active x positions, and the
     //     lowest active y position
     // get highest conflicting landed block
     // teleport to one above
 
-    using size_t = Shape::size_type;
-
-    const std::array<std::pair<size_t, size_t>, 4>
-        coords = shape.coords();
     std::map<uint, uint> lows; // lowest y in each col
     uint high_y = 0;
-    for (auto [x, y] : coords)
+    for (auto [x, y] : shape.Coords())
     {
         if (lows.count(x) == 0)
             lows.insert(std::make_pair(x, y));
@@ -90,56 +86,67 @@ void Tetris::hard_drop()
                 high_y = y;
     }
 
-    shape.set_y(high_y);
+    shape.SetY(high_y);
     landed = true;
 }
 
 
-void Tetris::soft_drop()
+void Tetris::SoftDrop()
 {
-    uint old_speed = speed;
-    if (!landed)
-        speed = speed * 2;
-    while (!landed);
-    speed = old_speed;
+    // uint old_speed = speed;
+    // if (!landed)
+    //     speed = speed * 2;
+    // while (!landed);
+    // speed = old_speed;
 }
 
 
-void Tetris::go_left()
+void Tetris::MoveLeft()
 {
-    if (shape.left() > 0)
-        shape.go_left();
+    if (shape.X() > 0)
+        shape.MoveLeft();
 }
 
 
-void Tetris::go_right()
+void Tetris::MoveRight()
 {
-    if (shape.right() > 0)
-        shape.go_right();
+    if (shape.X() + shape.Width() < WIDTH)
+        shape.MoveRight();
 }
 
 
-void Tetris::rotate_cw()
+void Tetris::contain_shape()
 {
-    ;
+    const UIntFast shape_w = shape.Width();
+    if (shape.X() + shape_w >= WIDTH)
+        shape.MoveLeft(shape.X() + shape_w - WIDTH - 1);
+    if (shape.X() - shape_w < 0)
+        shape.MoveLeft(shape_w - shape.X());
 }
 
 
-void Tetris::rotate_cc()
+void Tetris::RotateCW()
 {
-    while (shape.right() == W && shape.left() + shape.height() >= W)
-        shape.go_left();
-    while (shape.left() == 0) && shape.right() + shape.height();
-
-    shape.rotate_cc();
+    shape.RotateCW();
+    contain_shape();
 }
 
 
-void Tetris::hold()
+void Tetris::RotateCC()
 {
+    shape.RotateCC();
+    contain_shape();
+}
+
+
+void Tetris::Hold()
+{
+    if (!can_hold)
+        return;
     Shape temp = queued;
     queued = shape;
     shape = temp;
+    can_hold = false;
 }
 
 
@@ -149,13 +156,7 @@ void Tetris::on_land()
     shape = rand_shape();
     reset_shape = true;
     landed = false;
-    landed_count += 1;
-
-    if (landed_count % thresh == 0)
-    {
-        // thresh -= (thresh > 1 && thresh % accel == 0);
-        speed += 1;
-    }
+    can_hold = true;
 }
 
 
@@ -166,7 +167,7 @@ void Tetris::on_land()
 */
 void Tetris::clean_rows()
 {
-    for (int i = H - 1; i > 0; i--)
+    for (int i = HEIGHT - 1; i > 0; i--)
     {
         if (board[i].all())
         {
@@ -196,12 +197,12 @@ int Tetris::getch() const
     [[maybe_unused]]
     int sys_stat = 0;
     bool input_read = false;
-    std::condition_variable& cv = scr.io_cvar();
+    std::condition_variable& cv = scr.IoCondition();
     std::future<int> future;
 
     while (!input_read)
     {
-        std::unique_lock lock(scr.get_mutex());
+        std::unique_lock lock(scr.Mutex());
         cv.wait(lock);
 
         sys_stat = std::system("/bin/stty raw");
@@ -221,17 +222,6 @@ int Tetris::getch() const
 void Tetris::get_input()
 {
     int input = getch();
-    const auto lambda = [input, this]() -> void
-    {
-        switch (input)
-        {
-          case 'z': this->rotate_cc(); return;
-          case 'x': this->rotate_cw(); return;
-          case 'c': this->hold(); return;
-          case ' ': this->hard_drop(); return;
-          default: return;
-        }
-    };
     if (input == '\033')
     {
         input = getch();
@@ -240,15 +230,22 @@ void Tetris::get_input()
             input = getch();
             switch (input)
             {
-              case 'A': rotate_cw(); return;
-              case 'B': soft_drop(); return;
-              case 'C': go_right(); return;
-              case 'D': go_left(); return;
+              case 'A':return RotateCW();
+            //   case 'B':return SoftDrop();
+              case 'C':return MoveRight();
+              case 'D':return MoveLeft();
               default:;
             }
         }
     }
-    return lambda();
+    switch (input)
+    {
+      case 'z': return RotateCC();
+      case 'x': return RotateCW();
+      case 'c': return Hold();
+      case ' ': return HardDrop();
+      default: return;
+    }
 }
 
 

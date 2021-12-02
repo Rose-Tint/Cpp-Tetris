@@ -16,7 +16,7 @@ enum struct Key : int
 {
           Up,
     Left,Down,Right,
-    Q,W,E,R,
+    Q,WIDTH,E,R,
     A,S,D,F,
     Space,
     Other
@@ -25,32 +25,37 @@ enum struct Key : int
 
 class Tetris
 {
-  public:
-    static constexpr std::uint_fast8_t H = 24;
-    static constexpr std::uint_fast8_t W = 10;
+    static constexpr std::uint_fast8_t HEIGHT = 24;
+    static constexpr std::uint_fast8_t WIDTH = 10;
 
-    using board_type = std::array<std::bitset<W>, H>;
-    using uint = std::uint_fast16_t;
+  public:
+    using Board = std::array<std::bitset<WIDTH>, HEIGHT>;
+    using UIntFast = std::uint_fast8_t;
+    using UIntLeast = std::uint_least8_t;
 
     Tetris(Screen& screen);
 
     ~Tetris();
 
-    void soft_drop();
-    void hard_drop();
-    void go_right();
-    void go_left();
-    void rotate_cw();
-    void rotate_cc();
-    void hold();
+    void HardDrop();
+    void MoveRight();
+    void MoveLeft();
+    void RotateCC();
+    void RotateCW();
+    void Hold();
+
+    [[deprecated("Not Yet Supported")]]
+    void SoftDrop();
 
   private:
-    bool landed = true, reset_shape = true;
+    UIntLeast landed : 1;
+    UIntLeast reset_shape : 1;
+    UIntLeast can_hold : 1;
     std::atomic<bool> run = true;
-    std::atomic<uint> score = 0, level = 1;
-    std::atomic<uint> speed = 1, thresh = 15, acc = 3;
-    std::atomic<uint> landed_count = 0;
-    board_type board { };
+    UIntFast score = 0, level = 1;
+    // UIntFast speed = 1, thresh = 15, acc = 3;
+    // UIntFast landed_count = 0;
+    Board board { };
     Shape shape = rand_shape(), queued = rand_shape();
     Screen& scr;
     std::thread launch_thr, input_thr;
@@ -59,6 +64,7 @@ class Tetris
     void get_input();
     void input_loop() { while (run) get_input(); }
     void launch();
+    void contain_shape();
     Shape rand_shape();
     void clean_rows();
     void on_land();

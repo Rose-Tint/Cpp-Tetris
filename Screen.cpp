@@ -2,10 +2,13 @@
 #include "Screen.hpp"
 
 
-Screen::Screen(size_type h, size_type w, Ms fps, char bg)
-    : fps_lim(fps), bg(bg), H(h), W(w), area(H * W),
-      bsp_ln(std::string((W * 2), '\b') + "\x1B[A"),
-      display_thread(&Screen::display, this),
+using std::size_t;
+
+
+Screen::Screen(size_t h, size_t w, std::chrono::milliseconds fps, char bg)
+    : fps_lim(fps), bg(bg), height(h), width(w), area(height * width),
+      bsp_ln(std::string((width * 2), '\b') + "\x1B[A"),
+      display_thr(&Screen::display, this),
       buffer(new char[h * w])
 {
     std::fill(begin(), end(), bg);
@@ -15,34 +18,34 @@ Screen::Screen(size_type h, size_type w, Ms fps, char bg)
 Screen::~Screen()
 {
     do_display = false;
-    display_thread.join();
+    display_thr.join();
     delete[] buffer;
 }
 
-char Screen::at(size_type x, size_type y) const
+char Screen::At(size_t x, size_t y) const
     { return buffer[index(x, y)]; }
 
-void Screen::set(size_type x, size_type y, char ch)
+void Screen::Set(size_t x, size_t y, char ch)
     { buffer[index(x, y)] = ch; }
 
-void Screen::clear()
+void Screen::Clear()
     { std::fill(begin(), end(), bg); }
 
-void Screen::clear(size_type x1, size_type y1, size_type x2, size_type y2)
-    { fill(x1, y1, x2, y2, bg); }
+void Screen::Clear(size_t x1, size_t y1, size_t x2, size_t y2)
+    { Fill(x1, y1, x2, y2, bg); }
 
-void Screen::fill(char ch)
+void Screen::Fill(char ch)
     { std::fill(begin(), end(), ch); }
 
 
-void Screen::fill(size_type x1, size_type y1, size_type x2, size_type y2, char ch)
+void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, char ch)
 {
     if (x1 > x2) std::swap(x1, x2);
     if (y1 > y2) std::swap(y1, y2);
 
-    for (size_type y = y1; y < y2; y++)
-        for (size_type x = x1; x < x2; x++)
-            set(x, y, ch);
+    for (size_t y = y1; y < y2; y++)
+        for (size_t x = x1; x < x2; x++)
+            Set(x, y, ch);
 }
 
 
@@ -59,12 +62,12 @@ void Screen::display() const
 
 void Screen::print() const
 {
-    lock_guard_t lock(io_mtx);
+    std::lock_guard<std::mutex> lock(io_mtx);
 
-    const size_t area = H * W;
-    for (size_type i = 0; i < area; i++)
+    const size_t area = height * width;
+    for (size_t i = 0; i < area; i++)
     {
-        if (i && (i % W == 0))
+        if (i && (i % width == 0))
             std::putchar('\n');
         std::printf("%c ", buffer[i]);
     }
@@ -76,9 +79,9 @@ void Screen::print() const
 
 void Screen::erase() const
 {
-    lock_guard_t lock(io_mtx);
+    std::lock_guard<std::mutex> lock(io_mtx);
 
-    for (size_type i = 0; i < H - 1; i++)
+    for (size_t i = 0; i < height - 1; i++)
         printf("%s", bsp_ln.c_str());
     std::fflush(stdout);
 

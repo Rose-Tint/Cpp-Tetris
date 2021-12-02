@@ -1,7 +1,7 @@
 #include "../Tetris/Shape.hpp"
 
 
-Shape::Shape(ShapeID id, size_type x_pos, size_type y_pos)
+Shape::Shape(ShapeID id, UIntFast x_pos, UIntFast y_pos)
     : x_pos(x_pos), y_pos(y_pos), id(id)
 {
     reset_matrix();
@@ -42,19 +42,44 @@ Shape& Shape::operator = (Shape&& other)
 }
 
 
-void Shape::rotate_cw()
+void Shape::justify()
 {
-    static constexpr size_type layer_c = 2;
-    static constexpr size_type height = 3;
 
-    for (size_type layer = 0; layer < layer_c; layer++)
+    // adjust rows so that the top of the tetroid
+    // is at the top of the matrix
+    while (matrix[0].none())
     {
-        size_type first = layer;
-        size_type last = height - first;
+        // shift the first three rows up
+        for (UIntFast i = 0; i < 3; i++)
+            matrix[i] = matrix[i + 1];
+        matrix[3].reset();
+    }
 
-        for (size_type elem = first; elem < last; elem++)
+    // left justify the tetroid by checking if all
+    // of the bits in the first column are 0, and
+    // if so, left-bitshift each row
+    while (!(matrix[0][0] && matrix[1][0]
+          && matrix[2][0] && matrix[3][0]))
+    {
+        for (UIntFast i = 0; i < 4; i++)
+            matrix[i] <<= 1;
+    }
+}
+
+
+void Shape::RotateCW()
+{
+    static constexpr UIntFast LAYER_C = 2;
+    static constexpr UIntFast HEIGHT = 4;
+
+    for (UIntFast layer = 0; layer < LAYER_C; layer++)
+    {
+        UIntFast first = layer;
+        UIntFast last = HEIGHT - first;
+
+        for (UIntFast elem = first; elem < last; elem++)
         {
-            size_type off = elem - first;
+            UIntFast off = elem - first;
 
             bool topl = matrix[first][elem];
             bool topr = matrix[elem][last];
@@ -66,22 +91,23 @@ void Shape::rotate_cw()
             matrix[last - off][first] = btmr;
         }
     }
+    justify();
 }
 
 
-void Shape::rotate_cc()
+void Shape::RotateCC()
 {
-    static constexpr size_type layer_c = 2;
-    static constexpr size_type height = 4;
+    static constexpr UIntFast LAYER_C = 2;
+    static constexpr UIntFast HEIGHT = 4;
 
-    for (size_type layer = 0; layer < layer_c; layer++)
+    for (UIntFast layer = 0; layer < LAYER_C; layer++)
     {
-        size_type first = layer;
-        size_type last = height - first;
+        UIntFast first = layer;
+        UIntFast last = HEIGHT - first;
 
-        for (size_type elem = first; elem < last; elem++)
+        for (UIntFast elem = first; elem < last; elem++)
         {
-            size_type off = elem - first;
+            UIntFast off = elem - first;
 
             bool topl = matrix[first][elem];
             bool topr = matrix[elem][last];
@@ -93,46 +119,27 @@ void Shape::rotate_cc()
             matrix[last - off][first] = topl;
         }
     }
+    justify();
 }
 
 
-Shape::size_type Shape::right() const
+std::array<std::pair<Shape::UIntFast, Shape::UIntFast>, 4>
+    Shape::Coords() const
 {
-    size_type rmost = 4;
-    for (std::bitset<4> row : matrix)
-    {
-        if (row.any())
-            for (size_type i = 0; i < 4; i++)
-                if (row.test(i))
-                {
-                    if (i > rmost)
-                        rmost = i;
-                    break;
-                }
-        if (rmost == 4)
-            break;
-    }
-    return x_pos + rmost;
-}
+    std::array<std::pair<UIntFast, UIntFast>, 4> array { };
 
-
-std::array<std::pair<Shape::size_type, Shape::size_type>, 4>
-    Shape::coords() const
-{
-    std::array<std::pair<size_type, size_type>, 4> array { };
-
-    size_type next = 0;
-    for (size_type y = 0; y < 4; y++)
-        for (size_type x = 0; x < 4; x++)
+    UIntFast next = 0;
+    for (UIntFast y = 0; y < 4; y++)
+        for (UIntFast x = 0; x < 4; x++)
             if (matrix.at(y).test(x))
                 array[next++] = std::make_pair(x_pos + x, y_pos + y);
     return array;
 }
 
 
-void Shape::draw(Screen& scn, bool reset) const
+void Shape::Draw(Screen& scr, bool reset) const
 {
-    static std::array<std::pair<size_type, size_type>, 4>
+    static std::array<std::pair<UIntFast, UIntFast>, 4>
         prev_crds = {{{0,0},{0,0},{0,0},{0,0}}};
 
     if (reset)
@@ -140,11 +147,11 @@ void Shape::draw(Screen& scn, bool reset) const
     else
     {
         for (auto [x, y] : prev_crds)
-            scn.set(x, y, scn.bg_char());
+            scr.Set(x, y, scr.BgChar());
     }
-    const auto curr_crds = coords();
+    const auto curr_crds = Coords();
     for (auto [x, y] : curr_crds)
-        scn.set(x, y, id_as_char());
+        scr.Set(x, y, id_as_char());
 
     prev_crds = curr_crds;
 }
@@ -218,9 +225,9 @@ void Shape::reset_matrix()
 }
 
 
-Shape::size_type Shape::height() const
+Shape::UIntFast Shape::Height() const
 {
-    size_type h = 0;
+    UIntFast h = 0;
     h += matrix.at(0).any();
     h += matrix.at(1).any();
     h += matrix.at(2).any();
@@ -229,16 +236,17 @@ Shape::size_type Shape::height() const
 }
 
 
-Shape::size_type Shape::width() const
+Shape::UIntFast Shape::Width() const
 {
-    size_type w = 0;
+    UIntFast w = 0;
     bool col_any = false;
-    for (size_type x = 0; x < 4; x++)
+    for (UIntFast x = 0; x < 4; x++)
     {
         col_any = false;
-        for (size_type y = 0; y < 4 && !col_any; y++)
+        for (UIntFast y = 0; y < 4 && !col_any; y++)
             col_any |= matrix.at(y).test(x);
         w += col_any;
     }
+    return w;
 }
 
