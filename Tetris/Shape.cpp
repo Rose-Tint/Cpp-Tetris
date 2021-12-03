@@ -20,8 +20,7 @@ Shape& Shape::operator = (const Shape& other)
 {
     if (this == &other)
         return *this;
-    const ShapeID& id_ref = id;
-    const_cast<ShapeID&>(id_ref) = other.id;
+    const_cast<ShapeID&>(id) = other.id;
     matrix = other.matrix;
     y_pos = other.y_pos;
     x_pos = other.x_pos;
@@ -39,6 +38,18 @@ Shape& Shape::operator = (Shape&& other)
     y_pos = other.y_pos;
     x_pos = other.x_pos;
     return *this;
+}
+
+
+void Shape::swap(Shape& other)
+{
+    const ShapeID t_id = id;
+    const ShapeID o_id = other.id;
+    const_cast<ShapeID&>(id) = o_id;
+    const_cast<ShapeID&>(other.id) = t_id;
+    std::swap(matrix, other.matrix);
+    std::swap(x_pos, other.x_pos);
+    std::swap(y_pos, other.y_pos);
 }
 
 
@@ -137,23 +148,19 @@ std::array<std::pair<Shape::UIntFast, Shape::UIntFast>, 4>
 }
 
 
-void Shape::Draw(Screen& scr, bool reset) const
+void Shape::Draw(Screen& scr) const
 {
-    static std::array<std::pair<UIntFast, UIntFast>, 4>
-        prev_crds = {{{0,0},{0,0},{0,0},{0,0}}};
-
-    if (reset)
-        prev_crds = {{{0,0},{0,0},{0,0},{0,0}}};
-    else
-    {
-        for (auto [x, y] : prev_crds)
-            scr.Set(x, y, scr.BgChar());
-    }
     const auto curr_crds = Coords();
     for (auto [x, y] : curr_crds)
         scr.Set(x, y, id_as_char());
-
     prev_crds = curr_crds;
+}
+
+
+void Shape::EraseLast(Screen& scr) const
+{
+    for (auto [x, y] : prev_crds)
+        scr.Set(x, y, scr.BgChar());
 }
 
 
@@ -185,20 +192,20 @@ void Shape::reset_matrix()
                                   0b0'0'0'0'0,
                                   0b0'0'0'0'0 };
         break;
-      case ShapeID::L: matrix = { 0b0'1'0'0'0,
-                                  0b0'1'0'0'0,
-                                  0b0'1'1'0'0,
+      case ShapeID::L: matrix = { 0b0'0'0'1'0,
+                                  0b0'1'1'1'0,
+                                  0b0'0'0'0'0,
                                   0b0'0'0'0'0 };
         break;
-      case ShapeID::J: matrix = { 0b0'0'1'0'0,
-                                  0b0'0'1'0'0,
-                                  0b0'1'1'0'0,
+      case ShapeID::J: matrix = { 0b0'1'0'0'0,
+                                  0b0'1'1'1'0,
+                                  0b0'0'0'0'0,
                                   0b0'0'0'0'0 };
         break;
-      case ShapeID::I: matrix = { 0b0'1'0'0'0,
-                                  0b0'1'0'0'0,
-                                  0b0'1'0'0'0,
-                                  0b0'1'0'0'0 };
+      case ShapeID::I: matrix = { 0b0'1'1'1'1,
+                                  0b0'0'0'0'0,
+                                  0b0'0'0'0'0,
+                                  0b0'0'0'0'0 };
         break;
       case ShapeID::O: matrix = { 0b0'1'1'0'0,
                                   0b0'1'1'0'0,

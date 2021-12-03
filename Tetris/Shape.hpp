@@ -29,14 +29,17 @@ class Shape
 {
   public:
     using UIntFast = std::uint_fast8_t;
+    using Coordinates = std::array<std::pair<UIntFast, UIntFast>, 4>;
 
-    Shape(ShapeID id, UIntFast x_pos, UIntFast y_pos);
+    Shape(ShapeID id, UIntFast x_pos = 4, UIntFast y_pos = 0);
     Shape(const Shape& other);
 
     Shape& operator = (const Shape& other);
     Shape& operator = (Shape&& other);
 
-    void Draw(Screen& scn, bool reset = false) const;
+    void Draw(Screen& scr) const;
+    void Stain(Screen& scr) const;
+    void EraseLast(Screen& scr) const;
     void RotateCW();
     void RotateCC();
     UIntFast X() const { return x_pos; }
@@ -45,15 +48,18 @@ class Shape
     UIntFast Height() const;
     UIntFast Width() const;
     UIntFast SetY(UIntFast y) { return (y_pos = y); }
-    std::array<std::pair<UIntFast, UIntFast>, 4>
-        Coords() const;
+    Coordinates Coords() const;
     void Descend(UIntFast dist = 1) { y_pos += dist; }
+    void ResetPos() { y_pos = 4; x_pos = 2; }
+    void FullReset() { y_pos = 4; x_pos = 2; reset_matrix(); }
+
+    void swap(Shape& other);
 
   private:
-    UIntFast x_pos: 4;
-    UIntFast y_pos: 4;
+    UIntFast x_pos, y_pos;
     std::array<std::bitset<4>, 4> matrix;
     const ShapeID id;
+    mutable Coordinates prev_crds { };
 
     char id_as_char() const;
     void reset_matrix();

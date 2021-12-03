@@ -9,7 +9,8 @@
 #include "Tetris/Tetris.hpp"
 
 
-constexpr std::uint_fast8_t Height = 24;
+// queued piece preview + delim line + play field
+constexpr std::uint_fast8_t Height = 2 + 1 + 20;
 constexpr std::uint_fast8_t Width = 10;
 
 

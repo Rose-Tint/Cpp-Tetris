@@ -3,13 +3,18 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <string>
 #include <chrono>
 
 
 class Screen
 {
+    using size_t = std::size_t;
+    using csize_t = const std::size_t;
+    using milliseconds = std::chrono::milliseconds;
+
   public:
-    Screen(std::size_t height, std::size_t width, std::chrono::milliseconds fps, char bg = ' ');
+    Screen(size_t height, size_t width, milliseconds fps, char bg = ' ');
 
     Screen(const Screen&) = delete;
     Screen& operator = (const Screen&) = delete;
@@ -18,17 +23,23 @@ class Screen
 
     ~Screen();
 
-    char At(std::size_t x, std::size_t y) const;
-    char& At(std::size_t x, std::size_t y);
+    const char& At(csize_t x, csize_t y) const;
+    char& At(csize_t x, csize_t y);
+    char* PtrAt(csize_t x, csize_t y)
+        { return buffer + index(x, y); }
+    const char* PtrAt(csize_t x, csize_t y) const
+        { return buffer + index(x, y); }
 
     void Clear();
-    void Clear(std::size_t x1, std::size_t y1, std::size_t x2, std::size_t y2);
-    void Set(std::size_t x, std::size_t y, char ch);
-    void Fill(char ch);
-    void Fill(std::size_t x1, std::size_t y1, std::size_t x2, std::size_t y2, char ch);
+    char Clear(csize_t x, csize_t y);
+    void Clear(csize_t x1, csize_t y1, csize_t x2, csize_t y2);
+    char Set(csize_t x, csize_t y, char ch);
+    void Fill(const char ch);
+    void Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch);
+    void FillLn(csize_t ln, const char ch);
 
-    std::size_t Height() const { return height; }
-    std::size_t Width() const { return width; }
+    size_t Height() const { return height; }
+    size_t Width() const { return width; }
     char BgChar() const { return bg; }
     char BgChar(char ch) { return (bg = ch); }
     std::mutex& Mutex() const { return io_mtx; }
@@ -51,7 +62,7 @@ class Screen
     mutable std::mutex io_mtx;
     const std::chrono::milliseconds fps_lim;
     char bg;
-    const std::size_t height, width, area;
+    const size_t height, width, area;
     const std::string bsp_ln;
     std::thread display_thr;
     char* buffer;
@@ -59,6 +70,6 @@ class Screen
     void display() const;
     void print() const;
     void erase() const;
-    std::size_t index(std::size_t x, std::size_t y) const
-        { return ((y + 1) * width) - (x - 1); }
+    size_t index(csize_t x, csize_t y) const
+        { return ((y + 1) * width) - x; }
 };

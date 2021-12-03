@@ -25,7 +25,7 @@ enum struct Key : int
 
 class Tetris
 {
-    static constexpr std::uint_fast8_t HEIGHT = 24;
+    static constexpr std::uint_fast8_t HEIGHT = 2 + 1 + 20;
     static constexpr std::uint_fast8_t WIDTH = 10;
 
   public:
@@ -48,23 +48,26 @@ class Tetris
     void SoftDrop();
 
   private:
-    UIntLeast landed : 1;
-    UIntLeast reset_shape : 1;
-    UIntLeast can_hold : 1;
+    bool landed = true;
+    bool erase_shape = false;
+    bool can_hold = true;
     std::atomic<bool> run = true;
     UIntFast score = 0, level = 1;
     // UIntFast speed = 1, thresh = 15, acc = 3;
     // UIntFast landed_count = 0;
     Board board { };
-    Shape shape = rand_shape(), queued = rand_shape();
+    Shape shape = rand_shape();
+    Shape queued = rand_shape();
     Screen& scr;
     std::thread launch_thr, input_thr;
 
     int getch() const;
     void get_input();
     void input_loop() { while (run) get_input(); }
+    void print() const;
     void launch();
     void contain_shape();
+    void drop_ghost();
     Shape rand_shape();
     void clean_rows();
     void on_land();

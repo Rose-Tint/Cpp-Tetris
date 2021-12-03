@@ -2,9 +2,6 @@
 #include "Screen.hpp"
 
 
-using std::size_t;
-
-
 Screen::Screen(size_t h, size_t w, std::chrono::milliseconds fps, char bg)
     : fps_lim(fps), bg(bg), height(h), width(w), area(height * width),
       bsp_ln(std::string((width * 2), '\b') + "\x1B[A"),
@@ -22,23 +19,31 @@ Screen::~Screen()
     delete[] buffer;
 }
 
-char Screen::At(size_t x, size_t y) const
+const char& Screen::At(csize_t x, csize_t y) const
     { return buffer[index(x, y)]; }
 
-void Screen::Set(size_t x, size_t y, char ch)
-    { buffer[index(x, y)] = ch; }
+
+char Screen::Set(csize_t x, csize_t y, char ch)
+{
+    std::swap(buffer[index(x, y)], ch);
+    return ch;
+}
+
 
 void Screen::Clear()
     { std::fill(begin(), end(), bg); }
 
-void Screen::Clear(size_t x1, size_t y1, size_t x2, size_t y2)
+char Screen::Clear(csize_t x, csize_t y)
+    { return Set(x, y, bg); }
+
+void Screen::Clear(csize_t x1, csize_t y1, csize_t x2, csize_t y2)
     { Fill(x1, y1, x2, y2, bg); }
 
-void Screen::Fill(char ch)
+void Screen::Fill(const char ch)
     { std::fill(begin(), end(), ch); }
 
 
-void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, char ch)
+void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch)
 {
     if (x1 > x2) std::swap(x1, x2);
     if (y1 > y2) std::swap(y1, y2);
@@ -46,6 +51,12 @@ void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, char ch)
     for (size_t y = y1; y < y2; y++)
         for (size_t x = x1; x < x2; x++)
             Set(x, y, ch);
+}
+
+
+void Screen::FillLn(csize_t ln, const char ch)
+{
+    std::fill(PtrAt(0, ln - 1), PtrAt(width, ln + 1), ch);
 }
 
 
@@ -64,7 +75,7 @@ void Screen::print() const
 {
     std::lock_guard<std::mutex> lock(io_mtx);
 
-    const size_t area = height * width;
+    csize_t area = height * width;
     for (size_t i = 0; i < area; i++)
     {
         if (i && (i % width == 0))
