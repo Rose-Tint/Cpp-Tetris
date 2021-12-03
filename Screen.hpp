@@ -63,7 +63,7 @@ class Screen
     const std::chrono::milliseconds fps_lim;
     char bg;
     const size_t height, width, area;
-    const std::string bsp_ln;
+    const std::string bsp_ln, breakln;
     std::thread display_thr;
     char* buffer;
 
