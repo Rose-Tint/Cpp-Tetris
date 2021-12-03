@@ -1,1 +1,0 @@
-run = "clear; cmake -Bbuild -H.; if [ $? -eq 0 ]; then make -C build; if [ $? -eq 0 ]; then clear && ./build/CppTetris -f 120; fi fi"
