@@ -18,10 +18,13 @@ find_package(Threads REQUIRED)
 target_link_libraries(CppTetris Threads::Threads)
 
 find_package(Curses REQUIRED)
-target_include_directories(CppTetris PUBLIC ${CURSES_INCLUDE_DIR})
 target_link_libraries(CppTetris ${CURSES_LIBRARIES})
 
-target_include_directories(CppTetris PUBLIC ${CMAKE_SOURCE_DIR})
+
+target_include_directories(CppTetris PUBLIC
+    ${CMAKE_SOURCE_DIR}
+    ${CURSES_INCLUDE_DIR}
+)
 
 target_compile_options(CppTetris PUBLIC
     -std=c++17 -Og

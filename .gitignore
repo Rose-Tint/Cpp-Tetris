@@ -1,6 +1,8 @@
 /build/*
 
 .*
+# yea, yea, i know.
+!.replit
 !.gitignore
 
 *.log
