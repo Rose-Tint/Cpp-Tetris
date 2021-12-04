@@ -8,10 +8,10 @@ set(CMAKE_THREAD_PREFER_PTHREAD TRUE)
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 
 add_executable(CppTetris
-    ${CMAKE_SOURCE_DIR}/main.cpp
-    ${CMAKE_SOURCE_DIR}/Screen.cpp
-    ${CMAKE_SOURCE_DIR}/Tetris/Shape.cpp
-    ${CMAKE_SOURCE_DIR}/Tetris/Tetris.cpp
+    ${CMAKE_SOURCE_DIR}/src/main.cpp
+    ${CMAKE_SOURCE_DIR}/src/Screen.cpp
+    ${CMAKE_SOURCE_DIR}/src/Tetris/Shape.cpp
+    ${CMAKE_SOURCE_DIR}/src/Tetris/Tetris.cpp
 )
 
 find_package(Threads REQUIRED)
