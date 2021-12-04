@@ -16,7 +16,7 @@ enum struct Key : int
 {
           Up,
     Left,Down,Right,
-    Q,WIDTH,E,R,
+    Q,W,E,
     A,S,D,F,
     Space,
     Other
@@ -61,13 +61,10 @@ class Tetris
     Screen& scr;
     std::thread launch_thr, input_thr;
 
-    int getch() const;
     void get_input();
-    void input_loop() { while (run) get_input(); }
-    void print() const;
+    void display() const;
     void launch();
     void contain_shape();
-    void drop_ghost();
     Shape rand_shape();
     void clean_rows();
     void on_land();

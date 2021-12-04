@@ -1,7 +1,14 @@
 #include "../Tetris/Shape.hpp"
 
 
-Shape::Shape(ShapeID id, UIntFast x_pos, UIntFast y_pos)
+Shape::Shape(const ShapeID id)
+    : x_pos((id == ShapeID::O) ? 2 : 3), y_pos(0), id(id)
+{
+    reset_matrix();
+}
+
+
+Shape::Shape(const ShapeID id, const UIntFast x_pos, const UIntFast y_pos)
     : x_pos(x_pos), y_pos(y_pos), id(id)
 {
     reset_matrix();
@@ -134,8 +141,7 @@ void Shape::RotateCC()
 }
 
 
-std::array<std::pair<Shape::UIntFast, Shape::UIntFast>, 4>
-    Shape::Coords() const
+Shape::Coordinates Shape::Coords() const
 {
     std::array<std::pair<UIntFast, UIntFast>, 4> array { };
 
@@ -160,7 +166,7 @@ void Shape::Draw(Screen& scr) const
 void Shape::EraseLast(Screen& scr) const
 {
     for (auto [x, y] : prev_crds)
-        scr.Set(x, y, scr.BgChar());
+        scr.Clear(x, y);
 }
 
 

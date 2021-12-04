@@ -31,7 +31,8 @@ class Shape
     using UIntFast = std::uint_fast8_t;
     using Coordinates = std::array<std::pair<UIntFast, UIntFast>, 4>;
 
-    Shape(ShapeID id, UIntFast x_pos = 4, UIntFast y_pos = 0);
+    Shape(const ShapeID);
+    Shape(const ShapeID id, const UIntFast x_pos, const UIntFast y_pos);
     Shape(const Shape& other);
 
     Shape& operator = (const Shape& other);
@@ -48,6 +49,7 @@ class Shape
     UIntFast Height() const;
     UIntFast Width() const;
     UIntFast SetY(UIntFast y) { return (y_pos = y); }
+    UIntFast SetX(UIntFast x) { return (x_pos = x); }
     Coordinates Coords() const;
     void Descend(UIntFast dist = 1) { y_pos += dist; }
     void ResetPos() { y_pos = 4; x_pos = 2; }

@@ -1,11 +1,10 @@
 #include <random>
-#include <future>
+#include <fstream>
 #include <thread>
 #include <chrono>
 #include <map>
-#include <cstdlib>
 #include <cstdio>
-#include <fstream>
+#include <ncurses.h>
 
 #include "../Tetris/Tetris.hpp"
 #include "../Screen.hpp"
@@ -20,7 +19,15 @@ Tetris::Tetris(Screen& scr)
     scr.BgChar('.');
     scr.Clear();
     launch_thr = std::thread(&Tetris::launch, this);
-    input_thr = std::thread(&Tetris::input_loop, this);
+    // input_thr = std::thread([this]{ while (run) get_input(); });
+}
+
+
+Tetris::~Tetris()
+{
+    run = false;
+    // input_thr.join();
+    launch_thr.join();
 }
 
 
@@ -28,7 +35,7 @@ void Tetris::launch()
 {
     while (board[3].none())
     {
-        std::thread sleep_thr([]{std::this_thread::sleep_for(millis(100));});
+        std::thread sleep_thr([]{std::this_thread::sleep_for(millis(150));});
         if (!landed)
         {
             shape.Descend(level);
@@ -46,14 +53,14 @@ void Tetris::launch()
                     board.at(y).set(x);
         }
         else on_land(); 
-        print();
+        display();
         sleep_thr.join();
     }
     run = false;
 }
 
 
-void Tetris::print() const
+void Tetris::display() const
 {
     using std::ref;
 
@@ -61,11 +68,10 @@ void Tetris::print() const
         shape.EraseLast(scr);
     else const_cast<bool&>(erase_shape) = true;
     queued.EraseLast(scr);
-    std::thread shape_thr(&Shape::Draw, ref(shape), ref(scr));
-    std::thread queue_thr(&Shape::Draw, ref(queued), ref(scr));
-    shape_thr.join();
+    queued.Draw(scr);
+    shape.Draw(scr);
     scr.FillLn(2, '=');
-    queue_thr.join();
+    scr.Refresh();
 }
 
 
@@ -94,16 +100,6 @@ void Tetris::HardDrop()
 
     shape.SetY(bottom - 1);
     landed = true;
-}
-
-
-void Tetris::SoftDrop()
-{
-    // UIntFast old_speed = speed;
-    // if (!landed)
-    //     speed = speed * 2;
-    // while (!landed);
-    // speed = old_speed;
 }
 
 
@@ -151,8 +147,8 @@ void Tetris::Hold()
         return;
     shape.swap(queued);
     shape.FullReset();
-    queued.FullReset();
     shape.SetY(2);
+    queued.FullReset();
     can_hold = false;
 }
 
@@ -169,11 +165,6 @@ void Tetris::on_land()
 }
 
 
-/**
-* detects full rows, starting at the bottom,
-* and shifts the board down when one is found,
-* deleting the full rows
-*/
 void Tetris::clean_rows()
 {
     for (int i = HEIGHT - 1; i > 0; i--)
@@ -198,75 +189,17 @@ Shape Tetris::rand_shape()
 }
 
 
-int Tetris::getch() const
-{
-    using namespace std::chrono_literals;
-    using fs = std::future_status;
-
-    [[maybe_unused]]
-    int sys_stat = 0;
-    int input = 0;
-    std::condition_variable& cv = scr.IoCondition();
-    std::future<int> future;
-
-    while (input == 0)
-    {
-        std::unique_lock lock(scr.Mutex());
-        cv.wait(lock);
-
-        sys_stat = std::system("/bin/stty raw");
-        future = std::async(std::getchar);
-        if (future.wait_for(1ms) == fs::ready)
-            input = future.get();
-        sys_stat = std::system("/bin/stty cooked");
-
-        lock.unlock();
-        cv.notify_one();
-        std::this_thread::sleep_for(1ms);
-    };
-
-    return input;
-}
-
-
 void Tetris::get_input()
 {
-    std::ofstream of("./input.log");
-
-    of << "getting input...:" << std::endl;
-    int input = getch();
-    of.put(input);
-    if (input == '\033')
-    {
-        input = getch();
-        if (input == '[')
-        {
-            input = getch();
-            of.put(input);
-            switch (input)
-            {
-              case 'A':return RotateCW();
-            //   case 'B':return SoftDrop();
-              case 'C':return MoveRight();
-              case 'D':return MoveLeft();
-              default:;
-            }
-        }
-    }
-    switch (input)
+    switch (scr.GetChar())
     {
       case 'z': return RotateCC();
       case 'x': return RotateCW();
       case 'c': return Hold();
       case ' ': return HardDrop();
-      default: return;
+      case 258: return RotateCW();
+      case 261: return MoveRight();
+      case 260: return MoveLeft();
+      default:;
     }
-}
-
-
-Tetris::~Tetris()
-{
-    run = false;
-    input_thr.join();
-    launch_thr.join();
 }

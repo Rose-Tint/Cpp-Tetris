@@ -1,8 +1,7 @@
 #include <iostream>
-#include <thread>
-#include <chrono>
 #include <cstdint>
-#include <cstdio>
+#include <ncurses.h>
+#include <unistd.h>
 
 #include "Screen.hpp"
 #include "argparse.hpp"
@@ -16,8 +15,13 @@ constexpr std::uint_fast8_t Width = 10;
 
 int main(int argc, const char** argv)
 {
-    [[maybe_unused]]
-    int _ = std::system("/bin/stty -echo");
+    SCREEN* curscr = nullptr;
+    curscr = newterm(nullptr, stdout, stdin);
+
+    initscr();
+    cbreak();
+    noecho();
+    keypad(stdscr, true);
 
     const ArgInfo info = parse(argc, argv);
 
@@ -30,5 +34,8 @@ int main(int argc, const char** argv)
     Screen scr(Height, Width, info.frame_limit, ' ');
 
     Tetris tetris(scr);
+
+    endwin();
+    delscreen(curscr);
 }
 

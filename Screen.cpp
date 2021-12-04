@@ -1,42 +1,48 @@
 #include <cstdio>
+
 #include "Screen.hpp"
 
 
-Screen::Screen(size_t h, size_t w, std::chrono::milliseconds fps, char bg)
-    : fps_lim(fps), bg(bg), height(h), width(w), area(height * width),
-      bsp_ln(std::string((width + 2) * 2, '\b') + "\x1B[A"),
-      breakln("+" + std::string(width * 2 + 1, '-') + "+"),
+Screen::Screen(size_t h, size_t w, MSecs fps, char bg)
+    : fps_lim(fps), bg(bg), fillch(' '),
+      height(h), width(w), area(h * w),
       display_thr(&Screen::display, this),
+      wnd(newwin(2 * height, 2 * width, 0, 0)),
       buffer(new char[h * w])
 {
-    std::fill(begin(), end(), bg);
+    wrefresh(wnd);
+    Clear();
 }
 
 
 Screen::~Screen()
 {
     do_display = false;
+    std::scoped_lock lk(omtx, bufmtx);
     display_thr.join();
+    wclear(wnd);
+    wrefresh(wnd);
+    delwin(wnd);
     delete[] buffer;
 }
 
-const char& Screen::At(csize_t x, csize_t y) const
-    { return buffer[index(x, y)]; }
 
-
-char Screen::Set(csize_t x, csize_t y, char ch)
+void Screen::Set(csize_t x, csize_t y, cchar ch)
 {
-    std::swap(buffer[index(x, y)], ch);
-    return ch;
+    std::scoped_lock lk(bufmtx);
+    buffer[index(x, y)] = ch;
 }
 
 
 void Screen::Clear()
-    { std::fill(begin(), end(), bg); }
+{
+    std::scoped_lock lk(bufmtx);
+    std::fill(begin(), end(), bg);
+}
 
 
-char Screen::Clear(csize_t x, csize_t y)
-    { return Set(x, y, bg); }
+void Screen::Clear(csize_t x, csize_t y)
+    { Set(x, y, bg); }
 
 
 void Screen::Clear(csize_t x1, csize_t y1, csize_t x2, csize_t y2)
@@ -44,7 +50,10 @@ void Screen::Clear(csize_t x1, csize_t y1, csize_t x2, csize_t y2)
 
 
 void Screen::Fill(const char ch)
-    { std::fill(begin(), end(), ch); }
+{
+    std::scoped_lock lk(bufmtx);
+    std::fill(begin(), end(), ch);
+}
 
 
 void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch)
@@ -52,6 +61,7 @@ void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch)
     if (x1 > x2) std::swap(x1, x2);
     if (y1 > y2) std::swap(y1, y2);
 
+    std::scoped_lock lk(bufmtx);
     for (size_t y = y1; y < y2; y++)
         for (size_t x = x1; x < x2; x++)
             Set(x, y, ch);
@@ -60,54 +70,53 @@ void Screen::Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch)
 
 void Screen::FillLn(csize_t ln, const char ch)
 {
-    std::fill(PtrAt(0, ln - 1), PtrAt(width, ln + 1), ch);
+    std::scoped_lock lk(bufmtx);
+    std::fill(PtrAt(0, ln), PtrAt(width, ln), ch);
 }
 
 
 void Screen::display() const
 {
+    csize_t area = height * width;
     while (do_display)
     {
-        std::thread sleep_thr([this]{std::this_thread::sleep_for(fps_lim);});
-        print();
+        std::thread sleep_thr([this]{
+            std::this_thread::sleep_for(fps_lim);
+        });
+        std::scoped_lock lk(omtx, bufmtx);
+        mov(height, 0);
+        for (size_t i = 0; i < area; i++)
+        {
+            if (i && (x_comp(i) == 0))
+                mov(y_comp(i) + 1, 0);
+            print(buffer[i]);
+        }
+        mov(height, 0);
+        wrefresh(wnd);
+        omtx.unlock();
         sleep_thr.join();
-        erase();
     }
 }
 
 
-void Screen::print() const
+void Screen::print(const char ch) const
 {
-    std::lock_guard<std::mutex> lock(io_mtx);
-
-    const char* breakline = breakln.c_str();
-
-    csize_t area = height * width;
-    std::puts(breakline);     // puts appends \n
-    std::fputs("| ", stdout); // fputs does not
-    for (size_t i = 0; i < area; i++)
-    {
-        if (i && (i % width == 0))
-            std::fputs("|\n| ", stdout);
-        std::printf("%c ", buffer[i]);
-    }
-    std::puts("|");               // puts appends \n
-    std::fputs(breakline, stdout); // fputs does not
-    std::fflush(stdout);
-
-    io_cv.notify_one();
+    std::scoped_lock lk(omtx);
+    waddch(wnd, ch);
+    waddch(wnd, fillch);
 }
 
 
-void Screen::erase() const
+void Screen::print(csize_t y, csize_t x, cchar ch) const
 {
-    std::lock_guard<std::mutex> lock(io_mtx);
-
-    const char* bspline = bsp_ln.c_str();
-
-    for (size_t i = 0; i < height + 1; i++)
-        printf("%s", bspline);
-    std::fflush(stdout);
-
-    io_cv.notify_one();
+    std::scoped_lock lk(omtx);
+    mvwaddch(wnd, y, x, ch);
 }
+
+
+void Screen::mov(csize_t y, csize_t x) const
+{
+    std::scoped_lock lk(omtx);
+    wmove(wnd, y, x);
+}
+

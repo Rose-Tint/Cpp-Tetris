@@ -1,8 +1,9 @@
 #pragma once
 
+#include <ncurses.h>
 #include <thread>
 #include <mutex>
-#include <condition_variable>
+#include <atomic>
 #include <string>
 #include <chrono>
 
@@ -11,10 +12,11 @@ class Screen
 {
     using size_t = std::size_t;
     using csize_t = const std::size_t;
-    using milliseconds = std::chrono::milliseconds;
+    using cchar = const char;
+    using MSecs = std::chrono::milliseconds;
 
   public:
-    Screen(size_t height, size_t width, milliseconds fps, char bg = ' ');
+    Screen(size_t height, size_t width, MSecs fps, char bg = ' ');
 
     Screen(const Screen&) = delete;
     Screen& operator = (const Screen&) = delete;
@@ -27,49 +29,61 @@ class Screen
     char& At(csize_t x, csize_t y);
     char* PtrAt(csize_t x, csize_t y)
         { return buffer + index(x, y); }
-    const char* PtrAt(csize_t x, csize_t y) const
+    cchar* PtrAt(csize_t x, csize_t y) const
         { return buffer + index(x, y); }
 
+    void Refresh() { wrefresh(wnd); }
     void Clear();
-    char Clear(csize_t x, csize_t y);
+    void Clear(csize_t x, csize_t y);
     void Clear(csize_t x1, csize_t y1, csize_t x2, csize_t y2);
-    char Set(csize_t x, csize_t y, char ch);
-    void Fill(const char ch);
-    void Fill(size_t x1, size_t y1, size_t x2, size_t y2, const char ch);
-    void FillLn(csize_t ln, const char ch);
+    void Set(csize_t x, csize_t y, char ch);
+    void Fill(cchar ch);
+    void Fill(size_t x1, size_t y1, size_t x2, size_t y2, cchar ch);
+    void FillLn(csize_t ln, cchar ch);
+    int GetChar() { return wgetch(wnd); }
+    WINDOW* Window() { return wnd; }
 
     size_t Height() const { return height; }
     size_t Width() const { return width; }
     char BgChar() const { return bg; }
     char BgChar(char ch) { return (bg = ch); }
-    std::mutex& Mutex() const { return io_mtx; }
-    const bool& ioReady() const { return outputting; }
-    std::condition_variable& IoCondition() const { return io_cv; }
-    void Lock() const { io_mtx.lock(); }
-    void Unlock() const { io_mtx.unlock(); }
+    char FillChar() const { return fillch; }
+    char FillChar(char ch) { return (fillch = ch); }
+    void LockOutput() const;
+    void LockBuffer() const;
+    void UnlockOutput() const;
+    void UnlockBuffer() const;
 
     char* begin() { return buffer; }
     char* end() { return buffer + (height * width); }
-    const char* begin() const { return buffer; }
-    const char* end() const { return buffer + (height * width); }
-    const char* cbegin() const { return buffer; }
-    const char* cend() const { return buffer + (height * width); }
+    cchar* begin() const { return buffer; }
+    cchar* end() const { return buffer + (height * width); }
+    cchar* cbegin() const { return buffer; }
+    cchar* cend() const { return buffer + (height * width); }
 
 
   private:
-    mutable bool outputting = true, do_display = true;
-    mutable std::condition_variable io_cv;
-    mutable std::mutex io_mtx;
-    const std::chrono::milliseconds fps_lim;
-    char bg;
-    const size_t height, width, area;
-    const std::string bsp_ln, breakln;
+    mutable std::atomic_bool do_display = true;
+    mutable std::recursive_mutex omtx, bufmtx;
+    const MSecs fps_lim;
+    char bg = ' ', fillch = ' ';
+    csize_t height, width, area;
     std::thread display_thr;
-    char* buffer;
+    WINDOW* const wnd;
+    char* const buffer;
 
     void display() const;
     void print() const;
-    void erase() const;
+    void print(cchar ch) const;
+    void print(csize_t i, cchar ch) const
+        { print(y_comp(i), x_comp(i), ch); }
+    void print(csize_t y, csize_t x, cchar ch) const;
+    void mov(csize_t i) const { mov(y_comp(i), x_comp(i)); }
+    void mov(csize_t y, csize_t x) const;
     size_t index(csize_t x, csize_t y) const
-        { return ((y + 1) * width) - x; }
+        { return (y * width) + x; }
+    size_t y_comp(csize_t i) const
+        { return i / width; }
+    size_t x_comp(csize_t i) const
+        { return i % width; }
 };
